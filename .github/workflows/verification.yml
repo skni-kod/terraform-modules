@@ -1,0 +1,35 @@
+name: Terraform Modules CI
+
+on:
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  validate:
+    name: Lint & Validate HCL
+    runs-on: self-hosted
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: Check formatting
+        run: terraform fmt -check -recursive
+
+      - name: Init & Validate Modules
+        run: |
+          for dir in $(find . -type d -not -path "*/\.git/*" -not -path "*/\.terraform/*"); do
+              if [ -f "$dir/main.tf" ]; then
+                  echo "Validation module in directory: $dir"
+                  cd $dir
+
+                  terraform init -backend=false
+                  terraform validate
+
+                  cd - > /dev/null
+              fi
+          done
